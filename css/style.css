@@ -1,6 +1,9 @@
 .cardProducto{
     width: 400px;
     margin: 5px;
+    text-align: center;
+    
+
 }
 
 .total{
@@ -8,4 +11,13 @@
 }
 .img-hero-banner {
     width: 100%;
+}
+
+.imagen{
+    width: 100%;
+}
+
+.producto-imagen{
+    width: 100%;
+  
 }

@@ -1,136 +1,214 @@
 /// index.js
 // Este codigo implementa la simulación de un carrito de compras
 // para el sitio de gatotips.net
+//Beatriz Arenas 18/04/2023
+
+/// declaracion de variables 
+
+const formulario = document.getElementById("formulario");
+const inputNombre = document.getElementById("nombre");
+const inputApellido = document.getElementById("apellido");
+const titulo = document.getElementById("titulo");
+const divProductos = document.getElementById("divProductos");
+const carrito = [];
+const butonFinalizar = document.querySelector("#finalizar");
+const thead = document.querySelector("#thead");
+const tbody = document.querySelector("#tbody");
+const parrafoTotal = document.querySelector("#total");
+let products = [];
 
 
-/// declaracion de variables
-
-
-
-/// arreglo para los productos de comida para gatos
-const comida = [
-    {producto: "Croquetas", precio: 200},
-    {producto: "Lata", precio: 25}    
-];
-
-
-// arreglo para los productos de higiene
-const higiene = [
-    {producto: "Shampoo", precio: 100},
-    {producto: "Espuma", precio: 180}
-]
-
-
-/// arreglo para los productos de juguetes
-
-const juguetes = [{producto: "rascador", precio:100},
-    {producto:"cañas", precio:150},
-    {producto:"laser", precio:180},
-    {producto:"raton", precio:50}];
-
-/// variables de carrito
-let carrito = [];
-
-/// funciones
-
-function iniciarCarrito(){
-    let respuesta1 = prompt("Estas en el carrito de compras, ¿Deseas comprar algo ? si o no:");
-    
-
-    //Convertir a minusculas
-    respuesta1 = respuesta1.toLowerCase();
-    let continuar = "si";
-
-    if (respuesta1 == "si"){
-        //ejectua mientras continuar sea "si"
-        while(continuar == "si"){
-            // mostrar tipos de productos
-            let respuesta2 = prompt("Estos son los tipos de productos que tenemos:\n" + 
-            " (1) Comida\n"+
-            " (2)Higiene\n"+
-            " (3)Juguetes\n"+
-            " Ingresa el número de tu interés");
-
-            continuar = mostrarProductos(respuesta2);  
-        }
-          
-    };
-    
-    alert ("Gracias por tu visita");
+class producto {
+    constructor(id, nombre, precio,imagen) {
+        this.id = id;
+        this.nombre = nombre;
+        this.precio = precio;
+        this.imagen = imagen;
+    }
 };
 
-function mostrarProductos(tipoProducto){
-    let continuarComprando = "si";
 
-        //mostrar productos de acuerdo a la categoria
-        switch(tipoProducto){
-            case "1":
-                {
-                    // mostrar productos de la categoria
-                    let strProductos = "Los productos de esta categoría son estos:\n";
+//eventos
 
-                    for(let i = 0; i < comida.length; i++){
-                        strProductos += "(" + (i+1) + ") " + comida[i].producto + " $" + comida[i].precio + "\n";
-                    }
-                    
-                    let respuesta3 = prompt(strProductos);
-                    let intproducto = parseInt (respuesta3);
-                    carrito.push( comida [intproducto-1]);
-                    continuarComprando = mostrarCarrito();
-                }
-                
-                break;
-            case "2":
-                {
-                    let strProductos = "Los productos de esta categoría son estos:\n";
-                for(let i = 0; i < higiene.length; i++){
-                    strProductos += "(" + (i+1) + ") " + higiene[i].producto + " $" + higiene[i].precio + "\n";
-                }
-                let respuesta4 = prompt(strProductos);
-                let intproducto = parseInt (respuesta4);
-                carrito.push(higiene [intproducto-1]);
-                continuarComprando = mostrarCarrito();
-                }
-                
-            break;
-            case "3":
-                {
-                let strProductos = "Los productos de esta categoría son estos:\n";
-                for(let i = 0; i < juguetes.length; i++){
-                    strProductos += "(" + (i+1) + ") " + juguetes[i].producto + " $" + juguetes[i].precio + "\n";
-                }
-                let respuesta5 = prompt(strProductos);
-                let intproducto = parseInt (respuesta5);
-                carrito.push(juguetes [intproducto-1]);
-                continuarComprando = mostrarCarrito();
-            }
-            
-                break;
-            default:
-                alert("Tu selección no es válida");
-                break;
-        };
-    return continuarComprando;
-};
+//revisar en local storage
 
-// mostrar articulos en el carrito
-function mostrarCarrito(){
-    let strCarrito = "Los productos en tu carrito son:\n";
-    let totalCarrito = 0;
-    for(let i = 0; i < carrito.length; i++){
-        strCarrito += carrito[i].producto + " : $" + carrito[i].precio + "\n";
-        totalCarrito += carrito[i].precio;
+
+//carga de pagina
+ (function() {
+
+    getProducts().then(data => {
+        products = data;
+
+        //revisar si hay información del usuario en el localstorage
+        revisarInfoUsuario();
+    });
+ })();
+
+
+//Click sobre el boton ingresar
+formulario.onsubmit = (e) => {
+    e.preventDefault()
+    const infoUsuario = {
+        nombre: inputNombre.value,
+        apellido: inputApellido.value,
     }
 
-    strCarrito += "total del carrito: $" + totalCarrito + "\n\n";
-    strCarrito += "¿Deseas agregar algo más a tu carrito? (si/no)";
-    let respuesta6 = prompt(strCarrito);
-    respuesta6 = respuesta6.toLowerCase();
+    // Cambiando el mensaje de bienvenida
+    localStorage.setItem("infoUsuario", JSON.stringify(infoUsuario));
+    formulario.remove();
+    titulo.innerText = `Hola  ${infoUsuario.nombre} Estos son los articulos que tenemos en GatoTips`
 
-    return respuesta6;
+    // mostrar los articulos 
+    mostrarProductos();
+
 }
 
 
-/// eventos
+//funciones
 
-iniciarCarrito();
+//funcion que ejecuta el fetch para recuperar el arreglo de productos
+async function getProducts() {
+    const productAPI = await fetch("./data/productos.json");
+    const productsJson = await productAPI.json();
+    return productsJson
+};
+
+
+//funcion que muestra los productos
+function mostrarProductos() {
+    
+    products.forEach((prod) => {
+        const { id, nombre, precio, imagen, categoria } = prod
+        divProductos.innerHTML += `
+        <div class="card cardProducto ">
+        <div class="card-body">
+        <img src="${imagen}" class="producto-imagen"> 
+          <h5 class="card-title">${nombre}</h5>
+          <p class="card-text">${precio}  ${categoria}</p>
+          <button id="${id}-btn-comprar" prod-id=${id} class="btn btn-primary">AGREGAR</button>
+          <button id="${id}-btn-eliminar" prod-id=${id} class="btn btn-secondary">ELIMINAR</button>
+        </div>
+        </div>`
+
+    });
+
+    //agregar evento clic a botones
+    agregarClicBotonesCarrito();
+}; 
+
+
+
+
+
+function revisarInfoUsuario() {
+
+    //Revisar si en el storage hay registros
+    const infoUsuario = JSON.parse(localStorage.getItem('infoUsuario'));
+
+    if (infoUsuario) {
+        formulario.remove()
+        titulo.innerText = `Hola  ${infoUsuario.nombre} Estos son los articulos que tenemos en GatoTips`
+
+        mostrarProductos();
+    }
+};
+
+//agregar clics a los botones del carrito
+function agregarClicBotonesCarrito() {
+    
+    //botones comprar
+    let botonesComprar = document.querySelectorAll(".btn-primary");
+    botonesComprar.forEach(boton => {
+        boton.onclick = () => {
+            const producto = products.find(p => p.id === parseInt(boton.attributes["prod-id"].value));
+
+            const prodCarrito = {
+                id: producto.id,
+                nombre: producto.nombre,
+                precio: producto.precio,
+                cantidad: 1
+            }
+
+            const prodEnCarrito = carrito.find(prod => prod.id === prodCarrito.id)
+            
+            if (!prodEnCarrito) {
+                carrito.push(prodCarrito);
+            } else {
+                prodEnCarrito.cantidad++
+            }
+
+            messageAddProduc();
+
+            butonFinalizar.classList.remove("d-none");
+        }
+    });
+
+    //botones eliminar
+    let botonesEliminar = document.querySelectorAll(".btn-secondary");
+    botonesEliminar.forEach(boton => {
+        boton.onclick = () => {
+
+            const idProducto = parseInt(boton.attributes["prod-id"].value);
+
+            const prodEnCarrito = carrito.find(p => p.id === idProducto);
+
+            if (!prodEnCarrito) {
+                alert("Ese producto no esta en tu carrito");
+            } else {
+                prodEnCarrito.cantidad--
+                if (prodEnCarrito.cantidad === 0)
+                {
+                    const indexProd = carrito.indexOf(prodEnCarrito);
+                    if (indexProd > -1)
+                    {
+                        carrito.splice(indexProd, 1);
+                    }
+                }
+            }
+
+            messageEliProduc();
+
+            butonFinalizar.classList.remove("d-none");
+        }
+    });
+};
+
+
+//mensajes de alerta con sweet alert
+const messageAddProduc = () => {
+    Swal.fire({
+        text: "Producto agregardo al carrito",
+        timer: 2000
+    });
+}
+
+const messageEliProduc = () => {
+    Swal.fire({
+        text: "Producto eleminado",
+        timer: 2000
+    });
+}
+
+//boton finalizar compra
+butonFinalizar.onclick = () => {
+    divProductos.remove();
+    butonFinalizar.remove();
+    thead.innerHTML = `<tr>
+        <th scope="col">Producto</th>
+        <th scope="col">Cantidad</th>
+        <th scope="col">Total</th>
+        </tr>`
+
+    let totalCompra = 0
+    carrito.forEach(prod => {
+        totalCompra += prod.cantidad * prod.precio
+        tbody.innerHTML += `
+    <tr>
+      <td>${prod.nombre}</td>
+      <td>${prod.cantidad}</td>
+      <td>${prod.cantidad * prod.precio}</td>
+    </tr>`
+    })
+
+    parrafoTotal.innerHTML = `El total de tu compra es $ ${totalCompra}`
+}
